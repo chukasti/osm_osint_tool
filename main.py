@@ -2,10 +2,10 @@
 
 import requests
 from urllib.parse import quote
-import socket
 import sys
 from datetime import datetime
 import json
+
 
 try:
     hood = sys.argv[1]
@@ -16,12 +16,9 @@ except IndexError:
 
 with open("payload.txt", "r", encoding='utf-8') as f:
     payload = f.read()
-    urlencoded = quote(payload, safe="")
 
 
 url = "https://overpass-api.de/api/interpreter"
-
-socket.AF_INET, socket.AF_INET6 = socket.AF_INET6, socket.AF_INET6 # возможно не нужно, дело было в заголовке referer
 
 main_headers = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -64,22 +61,35 @@ hood_payload = {"X-Requested-With": "overpass-turbo",
                 "q": f"{hood}"}
 hood_url = f"https://nominatim.openstreetmap.org/search"
 def gain_hood_id():
-    hood_response = requests.get(hood_url, headers=hood_headers, params=hood_payload)
+    try:
+        hood_response = requests.get(hood_url, headers=hood_headers, params=hood_payload, timeout=20)
+        hood_response.raise_for_status()
+    except requests.exceptions.Timeout:
+        print("Время ожидания ответа от сервиса openstreetmap вышло. Попробуйте запустить скрипт снова.")
+        exit(1)
+    except requests.exceptions.HTTPError as e:
+        print(f"Ошибка ответа сервера: {e.response.status_code}")
+        exit(1)
+    except requests.exceptions.ConnectionError:
+        print ("ошибка подключения")
+        exit(1)
+
+
     try:
         oleg = hood_response.json()[0]["osm_id"]
     except IndexError:
         print("Район не найден")
         exit(1)
     stepa = 3600000000 + int(oleg)
-    # decompressed = gzip.decompress(hood_response.content)
     return stepa
-    # return decompressed.decode("utf-8")
 
 def parse_result(oleg: list):
     result2 = [
         {
             "name": e["tags"].get("name"),
-            "website": e["tags"].get("website")
+            "website": e["tags"].get("website"),
+            "phone": e["tags"].get("phone"),
+            "email": e["tags"].get("email")
         }
         for e in oleg if "tags" in e
     ]
@@ -88,7 +98,18 @@ def parse_result(oleg: list):
 def make_request_to_api():
     area_id = gain_hood_id()
     ready = payload.replace("3600000000", str(area_id))
-    response = requests.post(url, data={"data": ready}, headers=main_headers)
+    try:
+        response = requests.post(url, data={"data": ready}, headers=main_headers, timeout=40)
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        print("Время ожидания ответа от сервиса openstreetmap вышло. Попробуйте запустить скрипт снова.")
+        exit(1)
+    except requests.exceptions.HTTPError as e:
+        print(f"Ошибка ответа сервера: {e.response.status_code}")
+        exit(1)
+    except requests.exceptions.ConnectionError:
+        print ("ошибка подключения")
+        exit(1)
     sanya = response.json()["elements"]
     return sanya
 
