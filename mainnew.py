@@ -1,6 +1,7 @@
 import requests
 from urllib.parse import urlencode, quote, quote_plus
 import socket
+
 with open("payload.txt", "r", encoding='utf-8') as f:
     payload = f.read()
     urlencoded = quote(payload, safe="")
@@ -12,7 +13,7 @@ url = "https://overpass-api.de/api/interpreter"
 
 socket.AF_INET, socket.AF_INET6 = socket.AF_INET6, socket.AF_INET6
 
-our_headers = {
+main_headers = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
     "Accept": "*/*",
     "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -51,10 +52,9 @@ hood = input("введите район для поиска: ") # передел
 hood_payload = {"X-Requested-With": "overpass-turbo",
                 "format": "json",
                 "q": f"{hood}"}
-hood_payload_encoded = urlencode(hood_payload)
-hood_url = f"https://nominatim.openstreetmap.org/search?{hood_payload_encoded}"
+hood_url = f"https://nominatim.openstreetmap.org/search"
 def gain_hood_id():
-    hood_response = requests.get(hood_url, headers=hood_headers)
+    hood_response = requests.get(hood_url, headers=hood_headers, params=hood_payload)
     print(hood_response.url)
     oleg = hood_response.json()[0]["osm_id"]
     stepa = 3600000000 + int(oleg)
@@ -63,7 +63,9 @@ def gain_hood_id():
     # return decompressed.decode("utf-8")
 
 def make_request_to_api():
-    response = requests.post(url, data={"data": payload}, headers=our_headers)
+    area_id = gain_hood_id()
+    ready = payload.replace("3600000000", str(area_id))
+    response = requests.post(url, data={"data": ready}, headers=main_headers)
     return response.text
-ivan = gain_hood_id()
+ivan = make_request_to_api()
 print(ivan)
