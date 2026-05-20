@@ -8,14 +8,27 @@ import json
 
 
 try:
-    hood = sys.argv[1]
+    hood = sys.argv[1].lower()
 except IndexError:
-    print('Использование скрипта: python3 main.py ["название района"]')
+    print('Использование скрипта: python3 main.py ["название района"] [необходимый атрибут] (website/email/phone)')
     exit(0)
 
 
 with open("payload.txt", "r", encoding='utf-8') as f:
     payload = f.read()
+
+try:
+    if sys.argv[2] == "phone":
+        payload = payload.replace("website", "phone")
+    elif sys.argv[2] == "email":
+        payload = payload.replace("website","email")
+    elif sys.argv[2] == "website":
+        pass
+    else:
+        print('Использование: main.py ["название района"] [необходимый атрибут] (website/email/phone)')
+        exit(1)
+except IndexError:
+    pass
 
 
 url = "https://overpass-api.de/api/interpreter"
