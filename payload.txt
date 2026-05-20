@@ -1,0 +1,14 @@
+[out:json] [timeout:25];
+area(id:3600000000) -> .area_0;
+(
+  node["building"]["website"](area.area_0);
+  way["building"]["website"](area.area_0);
+  relation["building"]["website"](area.area_0);
+);
+
+convert item ::=::,
+  name = t["name"],
+  website = t["website"],
+  street = t["addr:street"];
+
+out;
