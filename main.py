@@ -1,8 +1,17 @@
+#!/usr/bin/env python3
+
 import requests
-from urllib.parse import urlencode, quote, quote_plus
+from urllib.parse import quote
 import socket
 import sys
 from datetime import datetime
+import json
+
+try:
+    hood = sys.argv[1]
+except IndexError:
+    print('Использование скрипта: python3 main.py ["название района"]')
+    exit(0)
 
 
 with open("payload.txt", "r", encoding='utf-8') as f:
@@ -12,9 +21,7 @@ with open("payload.txt", "r", encoding='utf-8') as f:
 
 url = "https://overpass-api.de/api/interpreter"
 
-#payload = "data=%5Bout%3Ajson%5D+%5Btimeout%3A25%5D%3B%0A+area(id%3A3600446114)+-%3E+.area_0%3B%0A(%0A++node%5B%22building%22%5D%5B%22website%22%5D(area.area_0)%3B%0A++way%5B%22building%22%5D%5B%22website%22%5D(area.area_0)%3B%0A++relation%5B%22building%22%5D%5B%22website%22%5D(area.area_0)%3B%0A)%3B%0A%0Aconvert+item+%3A%3A%3D%3A%3A%2C%0A++name+%3D+t%5B%22name%22%5D%2C%0A++website+%3D+t%5B%22website%22%5D%2C%0A++street+%3D+t%5B%22addr%3Astreet%22%5D%3B%0A%0Aout%3B"
-
-socket.AF_INET, socket.AF_INET6 = socket.AF_INET6, socket.AF_INET6
+socket.AF_INET, socket.AF_INET6 = socket.AF_INET6, socket.AF_INET6 # возможно не нужно, дело было в заголовке referer
 
 main_headers = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
@@ -48,19 +55,9 @@ hood_headers = {
     "Pragma": "no-cache",
     "Cache-Control": "no-cache"
                 }
-try:
-    if sys.argv[1] == "-help":
-        print("""Использование скрипта: python3 main.py ['название района']""")
-        exit(1)
-except IndexError:
-    pass
 
 
 
-try:
-    hood = str(sys.argv[1])
-except IndexError:
-    hood = input("Введите район для поиска: ") # переделать на sys.argv
 
 hood_payload = {"X-Requested-With": "overpass-turbo",
                 "format": "json",
@@ -68,23 +65,39 @@ hood_payload = {"X-Requested-With": "overpass-turbo",
 hood_url = f"https://nominatim.openstreetmap.org/search"
 def gain_hood_id():
     hood_response = requests.get(hood_url, headers=hood_headers, params=hood_payload)
-    print(hood_response.url)
-    oleg = hood_response.json()[0]["osm_id"]
+    try:
+        oleg = hood_response.json()[0]["osm_id"]
+    except IndexError:
+        print("Район не найден")
+        exit(1)
     stepa = 3600000000 + int(oleg)
     # decompressed = gzip.decompress(hood_response.content)
     return stepa
     # return decompressed.decode("utf-8")
 
+def parse_result(oleg: list):
+    result2 = [
+        {
+            "name": e["tags"].get("name"),
+            "website": e["tags"].get("website")
+        }
+        for e in oleg if "tags" in e
+    ]
+    return result2
+
 def make_request_to_api():
     area_id = gain_hood_id()
     ready = payload.replace("3600000000", str(area_id))
     response = requests.post(url, data={"data": ready}, headers=main_headers)
-    return response.text
+    sanya = response.json()["elements"]
+    return sanya
+
+
 ivan = make_request_to_api()
-print(ivan)
+parsed_result = parse_result(ivan)
 now = datetime.now()
 serialized_time = now.strftime("%Y-%m-%d_%H:%M:%S")
-filename = f"output_{serialized_time}"
+filename = f"{sys.argv[1].replace(', ', '_')}_{serialized_time}"
 with open(filename, "w") as file:
-    file.write(ivan)
-print(f"Файл записан как {filename}")
+    file.write(str(json.dumps(parsed_result, indent=2, ensure_ascii=False)))
+print(f"Данные записаны в файл {filename}")
