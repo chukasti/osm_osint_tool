@@ -1,6 +1,9 @@
 import requests
 from urllib.parse import urlencode, quote, quote_plus
 import socket
+import sys
+from datetime import datetime
+
 
 with open("payload.txt", "r", encoding='utf-8') as f:
     payload = f.read()
@@ -45,9 +48,19 @@ hood_headers = {
     "Pragma": "no-cache",
     "Cache-Control": "no-cache"
                 }
+try:
+    if sys.argv[1] == "-help":
+        print("""Использование скрипта: python3 main.py ['название района']""")
+        exit(1)
+except IndexError:
+    pass
 
 
-hood = input("введите район для поиска: ") # переделать на sys.argv
+
+try:
+    hood = str(sys.argv[1])
+except IndexError:
+    hood = input("Введите район для поиска: ") # переделать на sys.argv
 
 hood_payload = {"X-Requested-With": "overpass-turbo",
                 "format": "json",
@@ -69,3 +82,9 @@ def make_request_to_api():
     return response.text
 ivan = make_request_to_api()
 print(ivan)
+now = datetime.now()
+serialized_time = now.strftime("%Y-%m-%d_%H:%M:%S")
+filename = f"output_{serialized_time}"
+with open(filename, "w") as file:
+    file.write(ivan)
+print(f"Файл записан как {filename}")
