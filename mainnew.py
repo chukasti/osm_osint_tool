@@ -52,20 +52,18 @@ hood_payload = {"X-Requested-With": "overpass-turbo",
                 "format": "json",
                 "q": f"{hood}"}
 hood_payload_encoded = urlencode(hood_payload)
-print(hood_payload_encoded)
-input()
 hood_url = f"https://nominatim.openstreetmap.org/search?{hood_payload_encoded}"
 def gain_hood_id():
     hood_response = requests.get(hood_url, headers=hood_headers)
     print(hood_response.url)
+    oleg = hood_response.json()[0]["osm_id"]
+    stepa = 3600000000 + int(oleg)
     # decompressed = gzip.decompress(hood_response.content)
-    return hood_response.text
+    return stepa
     # return decompressed.decode("utf-8")
 
 def make_request_to_api():
     response = requests.post(url, data={"data": payload}, headers=our_headers)
     return response.text
 ivan = gain_hood_id()
-
 print(ivan)
-
