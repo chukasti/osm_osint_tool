@@ -85,14 +85,29 @@ def gain_hood_id():
 
 def parse_result(oleg: list):
     result2 = [
-        {
+        {k: v for k, v in {
             "name": e["tags"].get("name"),
             "website": e["tags"].get("website"),
             "phone": e["tags"].get("phone"),
-            "email": e["tags"].get("email")
-        }
+            "email": e["tags"].get("email"),
+            "addr:city": e["tags"].get("addr:city"),
+            "addr:street": e["tags"].get("addr:street"),
+            "addr:housenumber": e["tags"].get("addr:housenumber"),
+            "addr:postcode": e["tags"].get("addr:postcode")
+        }.items() if v is not None}
         for e in oleg if "tags" in e
     ]
+    total = len(result2)
+
+    with_website = sum(1 for e in result2 if e.get("website"))
+    with_phone = sum(1 for e in result2 if e.get("phone"))
+    with_email = sum(1 for e in result2 if e.get("email"))
+
+    print(f"Всего объектов: {total}")
+    print(f"С сайтом:       {with_website}")
+    print(f"С телефоном:    {with_phone}")
+    print(f"С email:        {with_email}")
+
     return result2
 
 def make_request_to_api():
@@ -102,7 +117,7 @@ def make_request_to_api():
         response = requests.post(url, data={"data": ready}, headers=main_headers, timeout=40)
         response.raise_for_status()
     except requests.exceptions.Timeout:
-        print("Время ожидания ответа от сервиса openstreetmap вышло. Попробуйте запустить скрипт снова.")
+        print("Время ожидания ответа от сервиса OSM вышло. Попробуйте запустить скрипт снова.")
         exit(1)
     except requests.exceptions.HTTPError as e:
         print(f"Ошибка ответа сервера: {e.response.status_code}")
@@ -117,7 +132,7 @@ def make_request_to_api():
 ivan = make_request_to_api()
 parsed_result = parse_result(ivan)
 now = datetime.now()
-serialized_time = now.strftime("%Y-%m-%d_%H:%M:%S")
+serialized_time = now.strftime("%d-%m-%Y_%H-%M-%S")
 filename = f"{sys.argv[1].replace(', ', '_')}_{serialized_time}"
 with open(filename, "w") as file:
     file.write(str(json.dumps(parsed_result, indent=2, ensure_ascii=False)))

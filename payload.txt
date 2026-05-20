@@ -1,9 +1,11 @@
 [out:json] [timeout:25];
 area(id:3600000000) -> .area_0;
 (
-  node["building"]["website"](area.area_0);
-  way["building"]["website"](area.area_0);
-  relation["building"]["website"](area.area_0);
+  node["office"]["website"](area.area_0);
+  node["amenity"]["website"](area.area_0);
+  node["shop"]["website"](area.area_0);
+  node["company"]["website"](area.area_0);
+  way["office"]["website"](area.area_0);
 );
 
 convert item ::=::,
